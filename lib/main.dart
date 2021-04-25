@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_live_streaming/screens/home_screen.dart';
-import 'package:flutter_live_streaming/screens/live_screen.dart';
+import 'package:flutter_live_streaming/pages/home_page.dart';
+
+import 'package:flutter_live_streaming/utils/utils.dart';
 
 void main() {
   runApp(MyApp());
@@ -14,8 +15,8 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-          primarySwatch: Colors.blue, accentColor: Color(0xfff160C2F)),
-      home: HomeScreen(),
+          primarySwatch: primaryColor, accentColor: Color(0xfff160C2F)),
+      home: HomePage(),
     );
   }
 }

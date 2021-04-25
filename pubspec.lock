@@ -7,7 +7,14 @@ packages:
       name: agora_rtc_engine
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.3.2"
+    version: "3.3.3"
+  agora_rtm:
+    dependency: "direct main"
+    description:
+      name: agora_rtm
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.9.14"
   async:
     dependency: transitive
     description:
