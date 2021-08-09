@@ -11,11 +11,12 @@ import 'package:flutter_live_streaming/utils/utils.dart';
 class LiveStreamPage extends StatefulWidget {
   /// non-modifiable channel name of the page
   ///
-  final String channelName;
-  final String userName;
+  final String? channelName;
+  final String? userName;
   bool isBroadcaster;
 
-  LiveStreamPage({Key key, this.channelName, this.userName, this.isBroadcaster})
+  LiveStreamPage(
+      {Key? key, this.channelName, this.userName, this.isBroadcaster = false})
       : super(key: key);
 
   @override
@@ -24,11 +25,14 @@ class LiveStreamPage extends StatefulWidget {
 
 class _LiveStreamPageState extends State<LiveStreamPage> {
   final _users = <int>[];
-  bool _isMicMuted = false;
-  bool _isVideoMuted = false;
-  RtcEngine _rtcEngine;
-  AgoraRtmClient _rtmClient;
-  AgoraRtmChannel _rtmChannel;
+  bool _isMicMuted = false,
+      _isVideoMuted = false,
+      _isLocalUserJoined = false,
+      _isCamSwitch = false;
+
+  late RtcEngine _rtcEngine;
+  AgoraRtmClient? _rtmClient;
+  AgoraRtmChannel? _rtmChannel;
 
   int chanelCount = 0;
 
@@ -39,36 +43,79 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
     // destroy sdks
     _rtcEngine.leaveChannel();
     _rtcEngine.destroy();
-    _rtmClient.destroy();
-    _rtmChannel.leave();
+    _rtmClient?.destroy();
+    _rtmChannel?.leave();
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
-    // initialize agora sdk and RTM SDK
-    initRtc();
-    iniRtm();
+    initRTM();
   }
 
-  Future<void> initRtc() async {
+  initRTM() async {
+    _rtmClient = await AgoraRtmClient.createInstance(APP_ID);
+    await _rtmClient?.login(null, widget.userName ?? "");
+    _rtmClient?.onMessageReceived = (AgoraRtmMessage message, String peerId) {
+      print("Message Received:${message.toString()}");
+    };
+    _rtmClient?.onConnectionStateChanged = (int state, int reason) {
+      print('Connection state changed:' +
+          state.toString() +
+          ', reason: ' +
+          reason.toString());
+      if (state == 5) {
+        _rtmClient?.logout();
+        print('Logout');
+      }
+    };
+    await _createRtmChannel(widget.channelName ?? "");
+    await initRTC();
+  }
+
+  _createRtmChannel(String name) async {
+    _rtmChannel = await _rtmClient?.createChannel(widget.channelName ?? "");
+    _rtmChannel?.join().then((value) {
+      getChannelCount();
+      _rtmChannel?.onMemberJoined = (AgoraRtmMember member) {
+        print(
+            "RTM Member Joined: ${member.userId} , Channel name ${member.channelId}");
+        getChannelCount();
+      };
+      _rtmChannel?.onMemberLeft = (AgoraRtmMember member) {
+        print("RTM Member left: " +
+            member.userId +
+            ', channel:' +
+            member.channelId);
+        getChannelCount();
+      };
+      _rtmChannel?.onMessageReceived =
+          (AgoraRtmMessage message, AgoraRtmMember member) {
+        print("RTM Received message on channel:${message.toString()}");
+      };
+      _rtmChannel?.onAttributesUpdated =
+          (List<AgoraRtmChannelAttribute> attributes) {
+        print("Channel attributes are updated");
+        getChannelCount();
+        getChannelAttributes();
+      };
+    });
+  }
+
+  Future<void> initRTC() async {
     if (APP_ID.isEmpty) {
       print("APP_ID missing, please provide your APP_ID in settings.dart");
       return;
     }
     await _initAgoraRtcEngine();
+    await _rtcEngine.joinChannel(null, widget.channelName ?? "", null, 0);
     _addAgoraEventHandlers();
-    VideoEncoderConfiguration configuration = VideoEncoderConfiguration();
-    configuration.dimensions = VideoDimensions(1920, 1080);
-    await _rtcEngine.setVideoEncoderConfiguration(configuration);
-    await _rtcEngine.joinChannel(null, widget.channelName, null, 0);
   }
 
   /// Create agora sdk instance and initialize
   Future<void> _initAgoraRtcEngine() async {
-    RtcEngineConfig config = RtcEngineConfig(APP_ID);
-    _rtcEngine = await RtcEngine.createWithConfig(config);
+    _rtcEngine = await RtcEngine.create(APP_ID);
     await _rtcEngine.enableVideo();
     await _rtcEngine.setChannelProfile(ChannelProfile.LiveBroadcasting);
     await _rtcEngine.setClientRole(
@@ -78,9 +125,11 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
   /// Add agora event handlers
   void _addAgoraEventHandlers() {
     _rtcEngine.setEventHandler(RtcEngineEventHandler(error: (code) {
-      print("On Error occurred ${code.toString()}");
+      print("On Error occurred: ${code.toString()}");
     }, joinChannelSuccess: (channel, uid, elapsed) {
-      print("onJoinChannel: $channel, uid: $uid'");
+      setState(() {
+        _isLocalUserJoined = true;
+      });
     }, leaveChannel: (stats) {
       setState(() {
         _users.clear();
@@ -88,80 +137,28 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
     }, userJoined: (uid, elapsed) {
       setState(() {
         _users.add(uid);
-        print("userJoined: Uid: $uid and elapsed $elapsed");
       });
     }, userOffline: (uid, elapsed) {
       setState(() {
         _users.remove(uid);
-        print("userOffline: Uid: $uid and elapsed $elapsed");
       });
     }, clientRoleChanged: (oldRole, newRole) {
       var attribute = List<AgoraRtmChannelAttribute>.generate(1, (index) {
-        return AgoraRtmChannelAttribute("appKey", widget.userName);
+        return AgoraRtmChannelAttribute("appKey", widget.userName ?? "");
       });
       //Updating the channel attributes
-      _rtmClient.addOrUpdateChannelAttributes(
-          widget.channelName, attribute, true);
+      _rtmClient?.addOrUpdateChannelAttributes(
+          widget.channelName ?? "", attribute, true);
       setState(() {
         widget.isBroadcaster = true;
       });
     }));
   }
 
-  iniRtm() async {
-    _rtmClient = await AgoraRtmClient.createInstance(APP_ID);
-    await _rtmClient.login(Token, widget.userName);
-    _rtmClient.onMessageReceived = (AgoraRtmMessage message, String peerId) {
-      print("Message Received: ${message.toString()}");
-    };
-    _rtmClient.onConnectionStateChanged = (int state, int reason) {
-      print('Connection state changed: ' +
-          state.toString() +
-          ', reason:- ' +
-          reason.toString());
-      if (state == 5) {
-        _rtmClient.logout();
-        print('Logout');
-      }
-    };
-    _createRtmChannel(widget.channelName);
-  }
-
-  Future<AgoraRtmChannel> _createRtmChannel(String name) async {
-    _rtmChannel = await _rtmClient.createChannel(name);
-    await _rtmChannel.join();
-    _rtmChannel.onMemberJoined = (AgoraRtmMember member) {
-      print("RTM Member joined: " +
-          member.userId +
-          ', channel:' +
-          member.channelId);
-      getChannelCount();
-    };
-    _rtmChannel.onMemberLeft = (AgoraRtmMember member) {
-      print("RTM Member left: " +
-          member.userId +
-          ', channel:' +
-          member.channelId);
-      getChannelCount();
-    };
-    _rtmChannel.onMessageReceived =
-        (AgoraRtmMessage message, AgoraRtmMember member) {
-      print("RTM Received message on channel:${message.toString()}");
-    };
-    _rtmChannel.onAttributesUpdated =
-        (List<AgoraRtmChannelAttribute> attributes) {
-      print("Channel attributes are updated ...");
-      getChannelCount();
-      getChannelAttributes();
-    };
-
-    return _rtmChannel;
-  }
-
   void getChannelAttributes() {
-    _rtmClient.getChannelAttributes(widget.channelName).then((value) => {
+    _rtmClient?.getChannelAttributes(widget.channelName ?? "").then((value) => {
           value.forEach((element) {
-            print("Channel attributes are ${element.toString()}");
+            print("Channel attributes: ${element.toString()}");
           })
         });
   }
@@ -181,10 +178,13 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
     setState(() {
       _isVideoMuted = !_isVideoMuted;
     });
-    _rtcEngine.muteLocalVideoStream(!_isVideoMuted);
+    _rtcEngine.muteLocalVideoStream(_isVideoMuted);
   }
 
   void _onSwitchCamera() {
+    setState(() {
+      _isCamSwitch = !_isCamSwitch;
+    });
     _rtcEngine.switchCamera();
   }
 
@@ -367,7 +367,7 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
               onPressed: _onSwitchCamera,
               child: Icon(
                 Icons.switch_camera,
-                color: Colors.blueAccent,
+                color: _isCamSwitch ? Colors.white : Colors.blue,
                 size: 20.0,
               ),
               shape: CircleBorder(),
@@ -410,7 +410,8 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
           ),
           child: Container(
             width: MediaQuery.of(context).size.width * 0.48,
-            child: RtcLocalView.SurfaceView(),
+            child:
+                _isLocalUserJoined ? RtcLocalView.SurfaceView() : Container(),
           ),
         ),
       ),
@@ -477,7 +478,7 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           Text(
-            widget.channelName,
+            widget.channelName ?? "",
             style: TextStyle(
                 color: Colors.white70,
                 fontSize: 28,
@@ -509,11 +510,11 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
   }
 
   Future<void> getChannelCount() async {
-    var membersData = await _rtmChannel.getMembers();
+    var membersData = await _rtmChannel?.getMembers();
     setState(() {
       if (membersData != null) {
         chanelCount = membersData.length;
-        print("Channel Count: $chanelCount");
+        print("Channel Count:$chanelCount");
       }
     });
   }

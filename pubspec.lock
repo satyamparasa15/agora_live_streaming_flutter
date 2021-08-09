@@ -7,14 +7,14 @@ packages:
       name: agora_rtc_engine
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.3.3"
+    version: "4.0.6"
   agora_rtm:
     dependency: "direct main"
     description:
       name: agora_rtm
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.9.14"
+    version: "1.0.0-rc.1"
   async:
     dependency: transitive
     description:
@@ -63,7 +63,7 @@ packages:
       name: cupertino_icons
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.0.2"
+    version: "1.0.3"
   fake_async:
     dependency: transitive
     description:
@@ -99,7 +99,7 @@ packages:
       name: json_annotation
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.1.1"
+    version: "4.0.1"
   matcher:
     dependency: transitive
     description:
@@ -127,21 +127,21 @@ packages:
       name: permission_handler
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "5.1.0+2"
+    version: "8.1.4+2"
   permission_handler_platform_interface:
     dependency: transitive
     description:
       name: permission_handler_platform_interface
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.0.2"
+    version: "3.6.1"
   plugin_platform_interface:
     dependency: transitive
     description:
       name: plugin_platform_interface
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.0.3"
+    version: "2.0.1"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -204,5 +204,5 @@ packages:
     source: hosted
     version: "2.1.0"
 sdks:
-  dart: ">=2.12.0-0.0 <3.0.0"
-  flutter: ">=1.12.13+hotfix.6"
+  dart: ">=2.12.0 <3.0.0"
+  flutter: ">=1.22.0"

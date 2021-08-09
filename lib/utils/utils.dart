@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Define App ID and Token
-const APP_ID = "";
-const Token = null;
+const APP_ID = "6655110553b7404a8bbd759a0f868785";
 
 MaterialColor primaryColor = MaterialColor(0xfff160C2F, color);
 
