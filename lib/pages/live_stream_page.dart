@@ -10,13 +10,15 @@ import 'package:flutter_live_streaming/utils/utils.dart';
 
 class LiveStreamPage extends StatefulWidget {
   /// non-modifiable channel name of the page
-  ///
-  final String? channelName;
-  final String? userName;
+  final String channelName;
+  final String userName;
   bool isBroadcaster;
 
   LiveStreamPage(
-      {Key? key, this.channelName, this.userName, this.isBroadcaster = false})
+      {Key? key,
+      required this.channelName,
+      required this.userName,
+      this.isBroadcaster = false})
       : super(key: key);
 
   @override
@@ -31,8 +33,8 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
       _isCamSwitch = false;
 
   late RtcEngine _rtcEngine;
-  AgoraRtmClient? _rtmClient;
-  AgoraRtmChannel? _rtmChannel;
+  late AgoraRtmClient? _rtmClient;
+  late AgoraRtmChannel? _rtmChannel;
 
   int chanelCount = 0;
 
@@ -56,7 +58,7 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
 
   initRTM() async {
     _rtmClient = await AgoraRtmClient.createInstance(APP_ID);
-    await _rtmClient?.login(null, widget.userName ?? "");
+    await _rtmClient?.login(null, widget.userName);
     _rtmClient?.onMessageReceived = (AgoraRtmMessage message, String peerId) {
       print("Message Received:${message.toString()}");
     };
@@ -70,12 +72,12 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
         print('Logout');
       }
     };
-    await _createRtmChannel(widget.channelName ?? "");
+    await _createRtmChannel(widget.channelName);
     await initRTC();
   }
 
   _createRtmChannel(String name) async {
-    _rtmChannel = await _rtmClient?.createChannel(widget.channelName ?? "");
+    _rtmChannel = await _rtmClient?.createChannel(widget.channelName);
     _rtmChannel?.join().then((value) {
       getChannelCount();
       _rtmChannel?.onMemberJoined = (AgoraRtmMember member) {
@@ -97,8 +99,6 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
       _rtmChannel?.onAttributesUpdated =
           (List<AgoraRtmChannelAttribute> attributes) {
         print("Channel attributes are updated");
-        getChannelCount();
-        getChannelAttributes();
       };
     });
   }
@@ -109,7 +109,7 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
       return;
     }
     await _initAgoraRtcEngine();
-    await _rtcEngine.joinChannel(null, widget.channelName ?? "", null, 0);
+    await _rtcEngine.joinChannel(null, widget.channelName, null, 0);
     _addAgoraEventHandlers();
   }
 
@@ -144,23 +144,15 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
       });
     }, clientRoleChanged: (oldRole, newRole) {
       var attribute = List<AgoraRtmChannelAttribute>.generate(1, (index) {
-        return AgoraRtmChannelAttribute("appKey", widget.userName ?? "");
+        return AgoraRtmChannelAttribute("appKey", widget.userName);
       });
       //Updating the channel attributes
       _rtmClient?.addOrUpdateChannelAttributes(
-          widget.channelName ?? "", attribute, true);
+          widget.channelName, attribute, true);
       setState(() {
         widget.isBroadcaster = true;
       });
     }));
-  }
-
-  void getChannelAttributes() {
-    _rtmClient?.getChannelAttributes(widget.channelName ?? "").then((value) => {
-          value.forEach((element) {
-            print("Channel attributes: ${element.toString()}");
-          })
-        });
   }
 
   void _onCallEnd(BuildContext context) {
@@ -478,7 +470,7 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           Text(
-            widget.channelName ?? "",
+            widget.channelName,
             style: TextStyle(
                 color: Colors.white70,
                 fontSize: 28,
