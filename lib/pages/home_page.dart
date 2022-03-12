@@ -130,10 +130,8 @@ class _HomePageState extends State<HomePage> {
       _userController.text.isEmpty ? _isValidUser = true : _isValidUser = false;
     });
     if (_channelController.text.isNotEmpty && _userController.text.isNotEmpty) {
-      // await for camera and mic permissions before pushing video page
       await _handleCameraAndMic(Permission.camera);
       await _handleCameraAndMic(Permission.microphone);
-      // push video page with given channel name
       await Navigator.push(
         context,
         MaterialPageRoute(

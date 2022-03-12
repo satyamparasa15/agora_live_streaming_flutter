@@ -4,6 +4,7 @@ import 'package:agora_rtc_engine/rtc_engine.dart';
 import 'package:agora_rtc_engine/rtc_local_view.dart' as RtcLocalView;
 import 'package:agora_rtc_engine/rtc_remote_view.dart' as RtcRemoteView;
 import 'package:agora_rtm/agora_rtm.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_live_streaming/utils/utils.dart';
@@ -37,6 +38,7 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
   late AgoraRtmChannel? _rtmChannel;
 
   int chanelCount = 0;
+  bool isCondition = false;
 
   @override
   void dispose() {
@@ -129,6 +131,7 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
     }, joinChannelSuccess: (channel, uid, elapsed) {
       setState(() {
         _isLocalUserJoined = true;
+        // isCondition= false;
       });
     }, leaveChannel: (stats) {
       setState(() {
@@ -137,6 +140,7 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
     }, userJoined: (uid, elapsed) {
       setState(() {
         _users.add(uid);
+        isCondition = true;
       });
     }, userOffline: (uid, elapsed) {
       setState(() {
@@ -149,9 +153,10 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
       //Updating the channel attributes
       _rtmClient?.addOrUpdateChannelAttributes(
           widget.channelName, attribute, true);
-      setState(() {
-        widget.isBroadcaster = true;
-      });
+      //  setState(() {
+      //    widget.isBroadcaster = true;
+      // //   isCondition= true;
+      //  });
     }));
   }
 
@@ -181,13 +186,19 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
   }
 
   void _toChangeRole() {
-    _rtcEngine.setClientRole(ClientRole.Broadcaster);
+    setState(() {
+      _rtcEngine.setClientRole(ClientRole.Broadcaster);
+      widget.isBroadcaster = true;
+    });
   }
 
   /// Helper function to get list of native views
   List<Widget> _getRenderViews() {
     final List<StatefulWidget> list = [];
-    _users.forEach((int uid) => list.add(RtcRemoteView.SurfaceView(uid: uid)));
+    _users.forEach((int uid) => list.add(RtcRemoteView.SurfaceView(
+          channelId: widget.channelName,
+          uid: uid,
+        )));
     return list;
   }
 
@@ -225,12 +236,13 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
         ));
       case 3:
         return Container(
-            child: Column(
-          children: <Widget>[
-            _expandedVideoRow(views.sublist(0, 2)),
-            _expandedVideoRow(views.sublist(2, 3))
-          ],
-        ));
+          child: Column(
+            children: <Widget>[
+              _expandedVideoRow(views.sublist(0, 2)),
+              _expandedVideoRow(views.sublist(2, 3))
+            ],
+          ),
+        );
       case 4:
         return Container(
             child: Column(
@@ -260,17 +272,15 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
             backgroundColor: Colors.transparent,
             body: widget.isBroadcaster
                 ? ListView(
+                    shrinkWrap: true,
+                    primary: false,
                     children: [
                       appbarView(),
                       SizedBox(
                         height: 10,
                       ),
-                      coHostsView(),
-                      descriptionView(),
                       localHostView(),
-                      SizedBox(
-                        height: 30,
-                      ),
+                      coHostsView(),
                       toolBar(context)
                     ],
                   )
@@ -312,10 +322,14 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
               padding: const EdgeInsets.all(10.0),
             ),
             ElevatedButton(
+                style: ElevatedButton.styleFrom(primary: Colors.red),
                 onPressed: () {
                   _toChangeRole();
                 },
-                child: Text("Join as Host"))
+                child: Text(
+                  "call",
+                  style: TextStyle(fontSize: 20),
+                ))
           ],
         ),
       ),
@@ -323,142 +337,196 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
   }
 
   /// layout for interaction buttons
-  Align toolBar(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        height: 80,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            RawMaterialButton(
-              onPressed: _onToggleMute,
-              child: Icon(
-                _isMicMuted ? Icons.mic_off : Icons.mic,
-                color: _isMicMuted ? Colors.white : Colors.blueAccent,
-                size: 20.0,
-              ),
-              shape: CircleBorder(),
-              elevation: 2.0,
-              fillColor: Colors.white24,
-              padding: const EdgeInsets.all(1.0),
+  Widget toolBar(BuildContext context) {
+    return Container(
+      height: 80,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          RawMaterialButton(
+            onPressed: _onToggleMute,
+            child: Icon(
+              _isMicMuted ? Icons.mic_off : Icons.mic,
+              color: _isMicMuted ? Colors.white : Colors.blueAccent,
+              size: 20.0,
             ),
-            RawMaterialButton(
-              onPressed: () => {_onCallEnd(context)},
-              child: Icon(
-                Icons.call_end,
-                color: Colors.white,
-                size: 26.0,
-              ),
-              shape: CircleBorder(),
-              elevation: 2.0,
-              fillColor: Colors.redAccent,
-              padding: const EdgeInsets.all(2.0),
+            shape: CircleBorder(),
+            elevation: 2.0,
+            fillColor: Colors.white24,
+            padding: const EdgeInsets.all(1.0),
+          ),
+          RawMaterialButton(
+            onPressed: () => {_onCallEnd(context)},
+            child: Icon(
+              Icons.call_end,
+              color: Colors.white,
+              size: 26.0,
             ),
-            RawMaterialButton(
-              onPressed: _onSwitchCamera,
-              child: Icon(
-                Icons.switch_camera,
-                color: _isCamSwitch ? Colors.white : Colors.blue,
-                size: 20.0,
-              ),
-              shape: CircleBorder(),
-              elevation: 2.0,
-              fillColor: Colors.white24,
-              padding: const EdgeInsets.all(1.0),
+            shape: CircleBorder(),
+            elevation: 2.0,
+            fillColor: Colors.redAccent,
+            padding: const EdgeInsets.all(2.0),
+          ),
+          RawMaterialButton(
+            onPressed: _onSwitchCamera,
+            child: Icon(
+              Icons.switch_camera,
+              color: _isCamSwitch ? Colors.white : Colors.blue,
+              size: 20.0,
             ),
-            RawMaterialButton(
-              onPressed: _onToggleLocalVideoMute,
-              child: Icon(
-                _isVideoMuted
-                    ? Icons.videocam_off_outlined
-                    : Icons.videocam_outlined,
-                color: _isVideoMuted ? Colors.white : Colors.blueAccent,
-                size: 20.0,
-              ),
-              shape: CircleBorder(),
-              elevation: 2.0,
-              fillColor: Colors.white24,
-              padding: const EdgeInsets.all(1.0),
+            shape: CircleBorder(),
+            elevation: 2.0,
+            fillColor: Colors.white24,
+            padding: const EdgeInsets.all(1.0),
+          ),
+          RawMaterialButton(
+            onPressed: _onToggleLocalVideoMute,
+            child: Icon(
+              _isVideoMuted
+                  ? Icons.videocam_off_outlined
+                  : Icons.videocam_outlined,
+              color: _isVideoMuted ? Colors.white : Colors.blueAccent,
+              size: 20.0,
             ),
-          ],
-        ),
+            shape: CircleBorder(),
+            elevation: 2.0,
+            fillColor: Colors.white24,
+            padding: const EdgeInsets.all(1.0),
+          ),
+        ],
       ),
     );
   }
 
   ///layout for showing local host
-  Align localHostView() {
+  Widget localHostView() {
     return Align(
       alignment: Alignment.bottomRight,
       child: Container(
-        height: MediaQuery.of(context).size.width * 0.60,
-        child: Card(
-          elevation: 2,
-          color: Colors.grey[900],
-          shape: RoundedRectangleBorder(
-            side: BorderSide(color: Colors.white, width: 2),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.48,
-            child:
-                _isLocalUserJoined ? RtcLocalView.SurfaceView() : Container(),
-          ),
+        height: MediaQuery.of(context).size.height * 0.4,
+        width: MediaQuery.of(context).size.width,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.48,
+          child: _isLocalUserJoined ? RtcLocalView.SurfaceView() : Container(),
         ),
       ),
     );
   }
 
-  Padding descriptionView() {
-    return Padding(
-      padding: const EdgeInsets.all(18),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          "Hey\n"
-          "You’re live,\n"
-          "by Agora's Interactive Live Streaming "
-          " ",
-          style: TextStyle(
-              color: Colors.white70,
-              letterSpacing: 0.6,
-              fontWeight: FontWeight.w500,
-              fontSize: 18),
-        ),
-      ),
+  Widget localHostView2() {
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      height: MediaQuery.of(context).size.height,
+      child: _isLocalUserJoined ? RtcLocalView.SurfaceView() : Container(),
     );
   }
 
   ///layout for showing hosts
-  Padding coHostsView() {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Container(
-        height: MediaQuery.of(context).size.width * 0.35,
-        child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _getRenderViews().length,
-            itemBuilder: (BuildContext context, int index) {
-              return Padding(
-                  padding: const EdgeInsets.all(1.0),
-                  child: Container(
-                    child: Card(
-                      elevation: 2,
-                      color: Colors.grey[900],
-                      shape: RoundedRectangleBorder(
-                        side: BorderSide(color: Colors.white, width: 2),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                      child: Container(
-                        width: MediaQuery.of(context).size.width * 0.30,
-                        color: Colors.grey,
-                        child: RtcRemoteView.SurfaceView(uid: _users[index]),
-                      ),
-                    ),
-                  ));
-            }),
-      ),
+  Widget coHostsView() {
+    return GridView.builder(
+      shrinkWrap: true,
+      primary: false,
+      // scrollDirection: Axis.horizontal,
+      itemCount: _getRenderViews().length,
+      itemBuilder: (BuildContext context, int index) {
+        return Stack(
+          children: [
+            Container(
+              child: RtcRemoteView.SurfaceView(
+                uid: _users[index],
+                channelId: widget.channelName,
+              ),
+            ),
+            // Container(
+            //   child: Row(
+            //     children: [
+            //       Text("Abir",style: TextStyle(fontSize: 14,color: Colors.white),),
+            //
+            //       Container(
+            //         height: 60,
+            //         child: Row(
+            //           children: [
+            //             GestureDetector(
+            //               onTap: (){},
+            //               child: Container(
+            //                 padding: EdgeInsets.all(0),
+            //                 decoration: BoxDecoration(
+            //                   border: Border.all(color: Colors.grey),
+            //                   // /  color: Colors.grey,
+            //                   shape: BoxShape.circle,
+            //                 ),
+            //                 height: 35,
+            //                 width: 35,
+            //                 child: Center(
+            //                   child: Image.asset(
+            //                     "assets/images/04.png",
+            //                     height: 30,
+            //                     width: 30,
+            //                     fit: BoxFit.cover,
+            //                   ),
+            //                 ),
+            //               ),
+            //
+            //             ),
+            //           ],
+            //         ),
+            //       ),
+            //
+            //
+            //
+            //     ],
+            //   ),
+            // ),
+          ],
+        );
+        //   Stack(
+        //   children: [
+        //
+        //     Container(
+        //       child: Row(
+        //         children: [
+        //           Text("Abir",style: TextStyle(fontSize: 14,color: Colors.white),),
+        //
+        //           // Container(
+        //           //   height: 60,
+        //           //   child: Row(
+        //           //     children: [
+        //           //       GestureDetector(
+        //           //         onTap: (){},
+        //           //         child: Container(
+        //           //           padding: EdgeInsets.all(0),
+        //           //           decoration: BoxDecoration(
+        //           //             border: Border.all(color: Colors.grey),
+        //           //             // /  color: Colors.grey,
+        //           //             shape: BoxShape.circle,
+        //           //           ),
+        //           //           height: 35,
+        //           //           width: 35,
+        //           //           child: Center(
+        //           //             child: Image.asset(
+        //           //               "assets/images/03.png",
+        //           //               height: 30,
+        //           //               width: 30,
+        //           //               fit: BoxFit.cover,
+        //           //             ),
+        //           //           ),
+        //           //         ),
+        //           //
+        //           //       ),
+        //           //     ],
+        //           //   ),
+        //           // ),
+        //
+        //
+        //
+        //         ],
+        //       ),
+        //     ),
+        //   ],
+        // );
+      },
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2, childAspectRatio: 4 / 4),
     );
   }
 
