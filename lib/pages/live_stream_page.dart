@@ -3,11 +3,9 @@ import 'dart:async';
 import 'package:agora_rtc_engine/rtc_engine.dart';
 import 'package:agora_rtc_engine/rtc_local_view.dart' as RtcLocalView;
 import 'package:agora_rtc_engine/rtc_remote_view.dart' as RtcRemoteView;
-import 'package:agora_rtm/agora_rtm.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter_live_streaming/utils/utils.dart';
+import 'package:shihab/utils/utils.dart';
+import 'package:agora_rtm/agora_rtm.dart';
 
 class LiveStreamPage extends StatefulWidget {
   /// non-modifiable channel name of the page
@@ -61,6 +59,7 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
   initRTM() async {
     _rtmClient = await AgoraRtmClient.createInstance(APP_ID);
     await _rtmClient?.login(null, widget.userName);
+
     _rtmClient?.onMessageReceived = (AgoraRtmMessage message, String peerId) {
       print("Message Received:${message.toString()}");
     };
@@ -97,6 +96,38 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
       _rtmChannel?.onMessageReceived =
           (AgoraRtmMessage message, AgoraRtmMember member) {
         print("RTM Received message on channel:${message.toString()}");
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(message.text ?? ""),
+        ));
+        if (message.text?.contains("PERMISSION_REQUEST") ?? false) {
+          showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                    title: Text("${message.text!.split("-")[1]} wants to join"),
+                    actions: <Widget>[
+                      FlatButton(
+                        child: Text("Ok"),
+                        onPressed: () async {
+                          await _rtmClient?.sendMessageToPeer(
+                              message.text!.split("-")[1],
+                              AgoraRtmMessage.fromText(
+                                  "PERMISSION_GRANTED-${message.text!.split("-")[1]}"));
+                          Navigator.pop(context);
+                        },
+                      ),
+                      FlatButton(
+                        child: Text("Cancel"),
+                        onPressed: () async {
+                          await _rtmClient?.sendMessageToPeer(
+                              message.text!.split("-")[1],
+                              AgoraRtmMessage.fromText(
+                                  "PERMISSION_DENIED-${message.text!.split("-")[1]}"));
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
+                  ));
+        }
       };
       _rtmChannel?.onAttributesUpdated =
           (List<AgoraRtmChannelAttribute> attributes) {
@@ -120,44 +151,52 @@ class _LiveStreamPageState extends State<LiveStreamPage> {
     _rtcEngine = await RtcEngine.create(APP_ID);
     await _rtcEngine.enableVideo();
     await _rtcEngine.setChannelProfile(ChannelProfile.LiveBroadcasting);
-    await _rtcEngine.setClientRole(
-        widget.isBroadcaster ? ClientRole.Broadcaster : ClientRole.Audience);
+    await _rtcEngine.setClientRole(ClientRole.Broadcaster);
   }
 
   /// Add agora event handlers
   void _addAgoraEventHandlers() {
-    _rtcEngine.setEventHandler(RtcEngineEventHandler(error: (code) {
-      print("On Error occurred: ${code.toString()}");
-    }, joinChannelSuccess: (channel, uid, elapsed) {
-      setState(() {
-        _isLocalUserJoined = true;
-        // isCondition= false;
-      });
-    }, leaveChannel: (stats) {
-      setState(() {
-        _users.clear();
-      });
-    }, userJoined: (uid, elapsed) {
-      setState(() {
-        _users.add(uid);
-        isCondition = true;
-      });
-    }, userOffline: (uid, elapsed) {
-      setState(() {
-        _users.remove(uid);
-      });
-    }, clientRoleChanged: (oldRole, newRole) {
-      var attribute = List<AgoraRtmChannelAttribute>.generate(1, (index) {
-        return AgoraRtmChannelAttribute("appKey", widget.userName);
-      });
-      //Updating the channel attributes
-      _rtmClient?.addOrUpdateChannelAttributes(
-          widget.channelName, attribute, true);
-      //  setState(() {
-      //    widget.isBroadcaster = true;
-      // //   isCondition= true;
-      //  });
-    }));
+    _rtcEngine.setEventHandler(
+      RtcEngineEventHandler(
+        error: (code) {
+          print("On Error occurred: ${code.toString()}");
+        },
+        joinChannelSuccess: (channel, uid, elapsed) {
+          setState(() {
+            _isLocalUserJoined = true;
+            // isCondition= false;
+          });
+        },
+        leaveChannel: (stats) {
+          setState(() {
+            _users.clear();
+          });
+        },
+        userJoined: (uid, elapsed) {
+          setState(() {
+            _users.add(uid);
+            isCondition = true;
+          });
+        },
+        userOffline: (uid, elapsed) {
+          setState(() {
+            _users.remove(uid);
+          });
+        },
+        clientRoleChanged: (oldRole, newRole) {
+          var attribute = List<AgoraRtmChannelAttribute>.generate(1, (index) {
+            return AgoraRtmChannelAttribute("appKey", widget.userName);
+          });
+          //Updating the channel attributes
+          _rtmClient?.addOrUpdateChannelAttributes(
+              widget.channelName, attribute, true);
+          //  setState(() {
+          //    widget.isBroadcaster = true;
+          // //   isCondition= true;
+          //  });
+        },
+      ),
+    );
   }
 
   void _onCallEnd(BuildContext context) {

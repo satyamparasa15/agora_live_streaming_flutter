@@ -1,4 +1,4 @@
-package com.flutterant.flutter.agora_live_streaming_flutter
+package com.flutterant.shihab
 
 import io.flutter.embedding.android.FlutterActivity
 

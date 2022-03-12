@@ -1,9 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_live_streaming/pages/live_stream_page.dart';
+import 'package:shihab/pages/audience_page.dart';
+import 'package:shihab/pages/live_stream_page.dart';
 
-import 'package:flutter_live_streaming/utils/utils.dart';
+import 'package:shihab/utils/utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class HomePage extends StatefulWidget {
@@ -132,16 +133,28 @@ class _HomePageState extends State<HomePage> {
     if (_channelController.text.isNotEmpty && _userController.text.isNotEmpty) {
       await _handleCameraAndMic(Permission.camera);
       await _handleCameraAndMic(Permission.microphone);
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => LiveStreamPage(
-            channelName: _channelController.text,
-            userName: _userController.text,
-            isBroadcaster: _isBroadcaster,
+      if (_isBroadcaster) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LiveStreamPage(
+              channelName: _channelController.text,
+              userName: _userController.text,
+              isBroadcaster: _isBroadcaster,
+            ),
           ),
-        ),
-      );
+        );
+      } else {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AudiencePage(
+              channelName: _channelController.text,
+              userName: _userController.text,
+            ),
+          ),
+        );
+      }
     }
   }
 

@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.flutterant.flutter_live_streaming">
+    package="com.flutterant.shihab">
    <application
-        android:label="flutter_live_streaming"
+        android:label="shihab"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

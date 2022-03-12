@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_live_streaming/pages/home_page.dart';
-import 'package:flutter_live_streaming/utils/utils.dart';
+import 'package:shihab/pages/home_page.dart';
+import 'package:shihab/utils/utils.dart';
 
 void main() {
   runApp(MyApp());

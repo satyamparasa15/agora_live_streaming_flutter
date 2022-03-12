@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.flutterant.flutter" "\0"
+            VALUE "CompanyName", "com.flutterant.shihab" "\0"
             VALUE "FileDescription", "agora_live_streaming_flutter" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "agora_live_streaming_flutter" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2022 com.flutterant.flutter. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2022 com.flutterant.shihab. All rights reserved." "\0"
             VALUE "OriginalFilename", "agora_live_streaming_flutter.exe" "\0"
             VALUE "ProductName", "agora_live_streaming_flutter" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
